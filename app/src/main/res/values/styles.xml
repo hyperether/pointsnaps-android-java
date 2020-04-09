@@ -1,0 +1,48 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="fragment_background">#F9F9F9</item>
+        <item name="white">#FFFFFF</item>
+        <item name="high_gray">#333333</item>
+        <item name="black">#000000</item>
+        <item name="select_photo">#dbdbdb</item>
+        <item name="black_purple">#000000</item>
+        <item name="android:textColorSecondary">#3fd2c7</item>
+    </style>
+
+    <!-- Dark application theme -->
+    <style name="darkTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="fragment_background">#090D28</item>
+        <item name="white">#181C3A</item>
+        <item name="high_gray">#686E9B</item>
+        <item name="black">#FFFFFF</item>
+        <item name="select_photo">#686E9B</item>
+        <item name="black_purple">#686E9B</item>
+        <item name="android:textColorSecondary">#3fd2c7</item>
+        <item name="colorPrimaryDark">#181C3A</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+    </style>
+
+    <!-- Setup Popup Theme -->
+    <style name="MyDarkToolbarStyle" parent="ThemeOverlay.AppCompat.Light">
+        <item name="android:colorBackground">?attr/white</item>
+        <item name="android:textColor">?attr/black</item>
+    </style>
+
+    <!-- Disable app toolbar label -->
+    <style name="HiddenTitleTheme" parent="AppTheme">
+        <item name="windowNoTitle">true</item>
+        <item name="windowActionBar">false</item>
+    </style>
+
+    <style name="FullScreenDialogTheme" parent="Theme.AppCompat.Light.DialogWhenLarge">
+        <item name="windowNoTitle">true</item>
+    </style>
+
+    <style name="DialogAnimation">
+        <item name="android:windowEnterAnimation">@anim/slide_up_animation</item>
+        <item name="android:windowExitAnimation">@anim/slide_down_animation</item>
+    </style>
+
+</resources>

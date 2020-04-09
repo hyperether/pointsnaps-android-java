@@ -1,0 +1,5 @@
+<resources>
+    <dimen name="edit_padding">20dp</dimen>
+    <dimen name="login_edt_margin_top">30dp</dimen>
+    <dimen name="padding_upside_hint">15dp</dimen>
+</resources>

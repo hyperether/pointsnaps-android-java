@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="fragment_background">#F9F9F9</item>
+        <item name="white">#FFFFFF</item>
+        <item name="high_gray">#333333</item>
+        <item name="black">#000000</item>
+        <item name="select_photo">#dbdbdb</item>
+        <item name="black_purple">#000000</item>
+        <item name="android:textColorSecondary">#3fd2c7</item>
+        <item name="colorPrimaryDark">#FFFFFF</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>
