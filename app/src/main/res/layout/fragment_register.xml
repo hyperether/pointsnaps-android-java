@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <variable
+            name="data"
+            type="com.hyperether.pointsnapssdk.repository.api.request.RegisterRequest" />
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="?attr/fragment_background"
+        android:clickable="true"
+        android:windowSoftInputMode="adjustResize"
+        tools:context="com.hyperether.pointsnaps.ui.fragment.RegisterFragment">
+
+        <include
+            android:id="@+id/mainToolbar"
+            layout="@layout/toolbar" />
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:padding="50dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/mainToolbar">
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:id="@+id/textView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/poppins"
+                        android:text="@string/sign_up"
+                        android:textColor="?attr/black"
+                        android:textSize="36sp"
+                        android:textStyle="bold"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintRight_toRightOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/userNameInputLayoutRegister"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:backgroundTint="@color/black"
+                        android:drawableRight="@drawable/username"
+                        android:hint="@string/username"
+                        android:textColorHint="?attr/black"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintRight_toRightOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/textView">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/usernamereg"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:backgroundTint="?attr/black"
+                            android:ems="10"
+                            android:fontFamily="@font/poppins"
+                            android:inputType="textPersonName"
+                            android:text="@{data.username}"
+                            android:textColor="?attr/black"
+                            android:textSize="16sp" />
+
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/firstNameInputLayoutRegister"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="5dp"
+                        android:backgroundTint="@color/black"
+                        android:drawableRight="@drawable/username"
+                        android:hint="@string/first_name"
+                        android:textColorHint="?attr/black"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintRight_toRightOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/userNameInputLayoutRegister">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/firstNameReg"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:backgroundTint="?attr/black"
+                            android:ems="10"
+                            android:fontFamily="@font/poppins"
+                            android:inputType="textPersonName"
+                            android:text="@{data.firstName}"
+                            android:textColor="?attr/black"
+                            android:textSize="16sp" />
+
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/lastNameInputLayoutRegister"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="5dp"
+                        android:backgroundTint="@color/black"
+                        android:drawableRight="@drawable/username"
+                        android:hint="@string/last_name"
+                        android:textColorHint="?attr/black"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintRight_toRightOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/firstNameInputLayoutRegister">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/lastNameReg"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:backgroundTint="?attr/black"
+                            android:ems="10"
+                            android:fontFamily="@font/poppins"
+                            android:inputType="textPersonName"
+                            android:text="@{data.lastName}"
+                            android:textColor="?attr/black"
+                            android:textSize="16sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/emailInputLayoutRegister"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="5dp"
+                        android:backgroundTint="?attr/black"
+                        android:hint="@string/email"
+                        android:textColorHint="?attr/black"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintRight_toRightOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/lastNameInputLayoutRegister">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/emailreg"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:backgroundTint="?attr/black"
+                            android:ems="10"
+                            android:fontFamily="@font/poppins"
+                            android:inputType="textEmailAddress"
+                            android:text="@{data.email}"
+                            android:textColor="?attr/black"
+                            android:textSize="16sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/passwordInputLayoutRegister"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="5dp"
+                        android:backgroundTint="?attr/black"
+                        android:drawableRight="@drawable/password"
+                        android:hint="@string/password"
+                        android:textColorHint="?attr/black"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintRight_toRightOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/emailInputLayoutRegister"
+                        app:passwordToggleEnabled="true"
+                        app:passwordToggleTint="?attr/black">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/passwordreg"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:backgroundTint="?attr/black"
+                            android:ems="10"
+                            android:fontFamily="@font/poppins"
+                            android:inputType="textPassword"
+                            android:text="@{data.password}"
+                            android:textColor="?attr/black"
+                            android:textSize="16sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <Button
+                        android:id="@+id/regButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/btn_background_dark"
+                        android:elevation="3dp"
+                        android:fontFamily="@font/poppins"
+                        android:gravity="center"
+                        android:text="@string/sign_up"
+                        android:textColor="@color/white"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintRight_toRightOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/passwordInputLayoutRegister" />
+
+                    <TextView
+                        android:id="@+id/login"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:fontFamily="@font/poppins"
+                        android:text="@string/sign_in"
+                        android:textColor="@color/green"
+                        android:textSize="16sp"
+                        android:textStyle="normal"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintRight_toRightOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/regButton" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </ScrollView>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>
