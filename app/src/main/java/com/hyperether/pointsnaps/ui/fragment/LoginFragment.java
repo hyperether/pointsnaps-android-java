@@ -13,13 +13,13 @@ import androidx.fragment.app.DialogFragment;
 import com.hyperether.pointsnaps.R;
 import com.hyperether.pointsnaps.databinding.FragmentLoginBinding;
 import com.hyperether.pointsnaps.manager.FragmentHandler;
+import com.hyperether.pointsnaps.ui.activity.MainActivity;
+import com.hyperether.pointsnaps.utils.Constants;
 import com.hyperether.pointsnapssdk.repository.SharedPref;
 import com.hyperether.pointsnapssdk.repository.api.ApiResponse;
 import com.hyperether.pointsnapssdk.repository.api.Repository;
 import com.hyperether.pointsnapssdk.repository.api.request.LoginRequest;
 import com.hyperether.pointsnapssdk.repository.api.response.LoginResponse;
-import com.hyperether.pointsnaps.ui.activity.MainActivity;
-import com.hyperether.pointsnaps.utils.Constants;
 
 /**
  * Fragment for log in
@@ -30,7 +30,6 @@ import com.hyperether.pointsnaps.utils.Constants;
 public class LoginFragment extends ToolbarFragment {
 
     public static final String TAG = Constants.LOGIN_FRAGMENT_TAG;
-    private View view;
     private FragmentLoginBinding binding;
 
     public static LoginFragment newInstance() {
@@ -49,10 +48,9 @@ public class LoginFragment extends ToolbarFragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_login, container, false);
-        view = binding.getRoot();
-        setupToolbarTitle(view, getString(R.string.sign_in));
+        View view = binding.getRoot();
         getDialog().getWindow().getAttributes().windowAnimations = R.style.DialogAnimation;
-        binding.user.requestFocus();
+        binding.email.requestFocus();
 
         binding.buttonLoginOk.setOnClickListener(buttonLoginOkListener);
         binding.register.setOnClickListener(buttonRegisterListener);
@@ -79,17 +77,15 @@ public class LoginFragment extends ToolbarFragment {
     private View.OnClickListener buttonLoginOkListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            String strUsername = binding.user.getText().toString();
-            String strPassword = binding.passText.getText().toString();
-            if (!strPassword.isEmpty() && !strUsername.isEmpty()) {
-                Repository.getInstance().login(new LoginRequest(strUsername, strPassword), new ApiResponse() {
+            String email = binding.email.getText().toString();
+            String password = binding.passText.getText().toString();
+            if (!password.isEmpty() && !email.isEmpty()) {
+                Repository.getInstance().login(new LoginRequest(email, password), new ApiResponse() {
                     @Override
                     public void onSuccess(Object response) {
                         LoginResponse loginResponse = (LoginResponse) response;
                         SharedPref.saveToken(loginResponse.getToken());
                         SharedPref.saveRefreshToken(loginResponse.getRefreshToken());
-                        SharedPref.saveUsername(loginResponse.getUser().getUsername());
-                        SharedPref.saveUserId(loginResponse.getUser().get_id());
 
                         if (isAdded() && getActivity() != null) {
                             getActivity().runOnUiThread(() ->
@@ -99,7 +95,10 @@ public class LoginFragment extends ToolbarFragment {
 
                     @Override
                     public void onError(String message) {
-                        alertDialog(getString(R.string.error), getString(R.string.login_failed));
+                        if (message != null && !message.isEmpty())
+                            alertDialog(getString(R.string.error), message);
+                        else
+                            alertDialog(getString(R.string.error), getString(R.string.login_failed));
                     }
                 });
             } else {
