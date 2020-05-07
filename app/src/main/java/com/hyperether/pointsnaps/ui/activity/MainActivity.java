@@ -36,6 +36,7 @@ import com.hyperether.pointsnaps.databinding.ActivityMainBinding;
 import com.hyperether.pointsnaps.manager.FragmentHandler;
 import com.hyperether.pointsnaps.manager.ImageManager;
 import com.hyperether.pointsnaps.ui.UserViewModel;
+import com.hyperether.pointsnaps.ui.fragment.PhotosPreviewFragment;
 import com.hyperether.pointsnaps.utils.Constants;
 import com.hyperether.pointsnapssdk.repository.SharedPref;
 import com.hyperether.pointsnapssdk.repository.api.ApiResponse;
@@ -70,6 +71,8 @@ public class MainActivity extends AppCompatActivity {
     private ProgressDialog progressDialog;
 
     private String myCurrentPhotoPath;
+    private int restToUpload = 0;
+    private int restToUploadError = 0;
 
     private UserViewModel userViewModel;
 
@@ -92,7 +95,13 @@ public class MainActivity extends AppCompatActivity {
 
         userViewModel.getLastUserDataLive().observe(this, data -> {
             UserData userData = userViewModel.getLastRecordData();
-            setUIOnDatabaseLoaded(userData);
+            if(!userData.getmCompleted()){
+                setUIOnDatabaseLoaded(userData);
+            }
+        });
+
+        userViewModel.getAllPhotosLiveListData().observe(this, data -> {
+            countPhotosData();
         });
 
         for (UserData user : users) {
@@ -106,11 +115,13 @@ public class MainActivity extends AppCompatActivity {
         activityMainBinding.llDescription.setOnClickListener(descriptionClickListener);
         activityMainBinding.llPhoto.setOnClickListener(photoClickListener);
         activityMainBinding.ibPhotoOpen.setOnClickListener(photoClickListener);
-        activityMainBinding.ibPhotoDelete.setOnClickListener(v -> userViewModel.deleteImage());
+        activityMainBinding.openPreviewDialog.setOnClickListener(photosPreviewClickListener);
 
         if (isUserLoggedIn()) {
             getPermissions();
         }
+
+        countPhotosData();
     }
 
     @Override
@@ -233,6 +244,8 @@ public class MainActivity extends AppCompatActivity {
 
     private OnClickListener photoClickListener = v -> openPhotoDialog();
 
+    private OnClickListener photosPreviewClickListener = v -> openPhotosPreviewDialog();
+
     private OnClickListener locationClickListener = v -> {
         List<String> list = new ArrayList<>();
         list.add(Manifest.permission.ACCESS_FINE_LOCATION);
@@ -261,17 +274,16 @@ public class MainActivity extends AppCompatActivity {
         if (!isUserLoggedIn()) {
             FragmentHandler.getInstance(MainActivity.this).openLoginDialog();
         } else {
-            uploadData(userViewModel.getLastRecordData());
+            showProgress();
+            for (UserData userData : userViewModel.getAllPhotosListData()){
+                uploadData(userData);
+            }
         }
     }
 
     private void uploadData(UserData data) {
         final String filePath = data.getmImagePath();
         if (filePath != null && !filePath.isEmpty()) {
-            progressDialog = new ProgressDialog(this);
-            progressDialog.setMessage(getString(R.string.uploading));
-            progressDialog.setCancelable(false);
-            progressDialog.show();
 
             final File file = new File(filePath);
             final String fileName = file.getName().replace(".jpg", "");
@@ -299,12 +311,21 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onError(String message) {
                     // TODO: check this logic
-                    userViewModel.updateCompletedState(true);
+                    userViewModel.updateStateToTrue(data.getId());
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            setUIOnDatabaseLoaded(userViewModel.getAllCompletedDataList().get(0));
+                        }
+                    });
                     if (userViewModel.getAllCompletedDataList().isEmpty()) {
                         createEmptyData();
                     }
+                    restToUploadError = userViewModel.getAllCompletedDataList().size();
+                    if(restToUploadError == 1){
+                        alertDialog(getString(R.string.error), getString(R.string.upload_error_service));
+                    }
                     dismissProgress();
-                    alertDialog(getString(R.string.error), getString(R.string.upload_error_service));
                 }
             });
         }
@@ -320,23 +341,36 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onSuccess(Object response) {
                         if (data != null) {
-                            if (!data.getmCompleted()) {
+                            if (data.getmImagePath().equals("")) {
                                 createEmptyData();
                             }
+                            restToUpload = userViewModel.getAllCompletedDataList().size();
                             userViewModel.delete(data);
                         }
-                        dismissProgress();
-                        alertDialog(getString(R.string.upload_title), getString(R.string.uploaded));
+                        // 1 empty object is always in db
+                        if(restToUpload == 2){
+                            dismissProgress();
+                            alertDialog(getString(R.string.upload_title), getString(R.string.uploaded));
+                        }
                     }
 
                     @Override
                     public void onError(String message) {
-                        userViewModel.updateCompletedState(true);
+                        userViewModel.updateStateToTrue(data.getId());
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                setUIOnDatabaseLoaded(userViewModel.getAllCompletedDataList().get(0));
+                            }
+                        });
                         if (userViewModel.getAllCompletedDataList().isEmpty()) {
                             createEmptyData();
                         }
+                        restToUploadError = userViewModel.getAllCompletedDataList().size();
+                        if(restToUploadError == 1){
+                            alertDialog(getString(R.string.error), getString(R.string.upload_error_service));
+                        }
                         dismissProgress();
-                        alertDialog(getString(R.string.error), getString(R.string.upload_error_service));
                     }
                 });
     }
@@ -347,6 +381,13 @@ public class MainActivity extends AppCompatActivity {
                 progressDialog.dismiss();
             }
         });
+    }
+
+    private void showProgress(){
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage(getString(R.string.uploading));
+        progressDialog.setCancelable(false);
+        progressDialog.show();
     }
 
     private void createEmptyData() {
@@ -377,12 +418,10 @@ public class MainActivity extends AppCompatActivity {
         // Photo
         if (data.getmImagePath().isEmpty()) {
             activityMainBinding.ivPhotoOpen.setVisibility(View.GONE);
-            activityMainBinding.ibPhotoDelete.setVisibility(View.GONE);
             activityMainBinding.ibPhotoOpen.setVisibility(View.GONE);
             activityMainBinding.llPhoto.setVisibility(View.VISIBLE);
         } else {
             activityMainBinding.ivPhotoOpen.setVisibility(View.VISIBLE);
-            activityMainBinding.ibPhotoDelete.setVisibility(View.VISIBLE);
             activityMainBinding.ibPhotoOpen.setVisibility(View.VISIBLE);
             activityMainBinding.llPhoto.setVisibility(View.GONE);
             File imgFile = new File(data.getmImagePath());
@@ -525,14 +564,38 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void addMultiplePhotos(String imagePath, String intentData){
+        String mDescription = userViewModel.getLastRecordData().getmDescription();
+        String mAddress = userViewModel.getLastRecordData().getmAddress();
+        double mLongitude = userViewModel.getLastRecordData().getmLongitude();
+        double mLatitude = userViewModel.getLastRecordData().getmLatitude();
+
+        UserData userData = new UserData(mDescription, imagePath, mAddress, mLongitude, mLatitude, false, intentData);
+        userViewModel.insert(userData);
+    }
+
+    private void openPhotosPreviewDialog(){
+        PhotosPreviewFragment dialog = new PhotosPreviewFragment();
+        dialog.show(getSupportFragmentManager(), "PhotosPreviewDialog");
+    }
+
+    private void countPhotosData(){
+        List<UserData> userData = userViewModel.getAllPhotosListData();
+        activityMainBinding.ibPhotoCount.setText(Integer.toString(userData.size()));
+        if((userData.size()) >= 6){
+            activityMainBinding.ibPhotoOpen.setVisibility(View.GONE);
+        } else {
+            activityMainBinding.ibPhotoOpen.setVisibility(View.VISIBLE);
+        }
+    }
+
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         switch (requestCode) {
             case Constants.RESULT_CAPTURE_IMG: {
                 if (resultCode == Activity.RESULT_OK) {
-                    userViewModel.updateImage(myCurrentPhotoPath.substring(5));
-                    userViewModel.updateIntentData("");
+                    addMultiplePhotos(myCurrentPhotoPath.substring(5), "");
                 }
                 break;
             }
@@ -541,8 +604,7 @@ public class MainActivity extends AppCompatActivity {
                     Uri tempUri = data.getData();
                     try {
                         String path = HyperFileManager.getFilePathFromUri(getApplicationContext(), tempUri);
-                        userViewModel.updateImage(path);
-                        userViewModel.updateIntentData(data.getData().toString());
+                        addMultiplePhotos(path, data.getData().toString());
                     } catch (URISyntaxException e) {
                         e.printStackTrace();
                     }

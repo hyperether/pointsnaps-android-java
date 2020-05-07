@@ -29,7 +29,7 @@
     <string name="title_activity_location">Lokacija</string>
     <string name="unknown_road">Nepoznat put</string>
     <string name="upload">Dodaj</string>
-    <string name="upload_error_service">Neuspešno slanje, slika je sačuvana</string>
+    <string name="upload_error_service">Neuspešno slanje, podaci su sačuvani</string>
     <string name="upload_from_gallery">Dodaj iz galerije</string>
     <string name="upload_title">Status</string>
     <string name="uploaded">Uspešno ste poslali podatke!</string>
