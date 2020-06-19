@@ -78,18 +78,57 @@
                     android:layout_gravity="bottom|left"
                     android:layout_margin="15dp"
                     android:adjustViewBounds="true"
+                    android:visibility="gone"
                     android:background="@android:color/transparent"
                     android:src="@drawable/ic_camera_again" />
 
-                <ImageButton
-                    android:id="@+id/ib_photo_delete"
-                    android:layout_width="wrap_content"
+                <RelativeLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_gravity="bottom|right"
-                    android:layout_margin="15dp"
-                    android:adjustViewBounds="true"
-                    android:background="@android:color/transparent"
-                    android:src="@drawable/ic_delete" />
+                    android:gravity="right">
+
+                    <ImageButton
+                        android:id="@+id/open_preview_dialog"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="bottom|right"
+                        android:layout_marginTop="15dp"
+                        android:layout_marginBottom="10dp"
+                        android:layout_marginEnd="15dp"
+                        android:adjustViewBounds="true"
+                        android:background="@android:color/transparent"
+                        android:src="@drawable/ic_photos_preview" />
+
+                    <TextView
+                        android:id="@+id/ib_photo_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:layout_gravity="bottom|right"
+                        android:layout_marginTop="15dp"
+                        android:layout_marginBottom="10dp"
+                        android:layout_toStartOf="@id/limit_photos"
+                        android:textColor="@android:color/white"
+                        android:textStyle="bold"
+                        android:adjustViewBounds="true"/>
+
+                    <TextView
+                        android:id="@+id/limit_photos"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="/6"
+                        android:layout_marginTop="15dp"
+                        android:layout_marginBottom="10dp"
+                        android:layout_marginEnd="15dp"
+                        android:layout_gravity="bottom|right"
+                        android:adjustViewBounds="true"
+                        android:textColor="@android:color/white"
+                        android:textStyle="bold"
+                        android:layout_toEndOf="@id/open_preview_dialog"/>
+
+                </RelativeLayout>
+
             </androidx.cardview.widget.CardView>
         </FrameLayout>
 

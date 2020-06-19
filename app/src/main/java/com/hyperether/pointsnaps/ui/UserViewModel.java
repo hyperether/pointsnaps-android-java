@@ -46,6 +46,18 @@ public class UserViewModel extends AndroidViewModel {
         return repository.getAllCompletedDataList();
     }
 
+    public LiveData<List<UserData>> getAllCompletedLiveDataList() {
+        return repository.getAllCompletedLiveDataList();
+    }
+
+    public List<UserData> getAllPhotosListData(){
+        return repository.getAllPhotosDataList();
+    }
+
+    public LiveData<List<UserData>> getAllPhotosLiveListData(){
+        return repository.getAllPhotosLiveDataList();
+    }
+
     public List<UserData> getAllUserDatalist() {
         return repository.getAllUserDataList();
     }
@@ -72,6 +84,10 @@ public class UserViewModel extends AndroidViewModel {
 
     public void updateCompletedState(Boolean completed) {
         repository.updateCompletedState(completed);
+    }
+
+    public void updateStateToTrue(int userDataId){
+        repository.updateStateToTrue(userDataId);
     }
 
     public void updateIntentData(String data) {

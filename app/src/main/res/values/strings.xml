@@ -29,7 +29,7 @@
     <string name="title_activity_location">Location</string>
     <string name="unknown_road">Unknown road</string>
     <string name="upload">Upload</string>
-    <string name="upload_error_service">Upload error, photo saved</string>
+    <string name="upload_error_service">Upload error, data saved</string>
     <string name="upload_from_gallery">Upload from Gallery</string>
     <string name="upload_title">Status</string>
     <string name="uploaded">Data uploaded!</string>
