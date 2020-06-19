@@ -6,19 +6,19 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
-import com.hyperether.pointsnaps.R;
-import com.hyperether.pointsnaps.adapter.PhotosPreviewAdapter;
-import com.hyperether.pointsnaps.ui.UserViewModel;
-import com.hyperether.pointsnapssdk.repository.db.UserData;
-
-import java.util.List;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.hyperether.pointsnaps.R;
+import com.hyperether.pointsnaps.adapter.PhotosPreviewAdapter;
+import com.hyperether.pointsnaps.ui.UserViewModel;
+import com.hyperether.pointsnapssdk.repository.db.UserData;
+
+import java.util.List;
 
 public class PhotosPreviewFragment extends DialogFragment {
 
@@ -47,17 +47,11 @@ public class PhotosPreviewFragment extends DialogFragment {
         setupRecyclerView(rootView);
 
         closeDialog = rootView.findViewById(R.id.close_photos_preview_dialog);
-        closeDialog.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                getDialog().dismiss();
-            }
-        });
-
+        closeDialog.setOnClickListener(v -> getDialog().dismiss());
         return rootView;
     }
 
-    public void setupRecyclerView(View rootView){
+    public void setupRecyclerView(View rootView) {
         recyclerView = rootView.findViewById(R.id.photo_review_recycler);
         adapter = new PhotosPreviewAdapter(getActivity(), userData);
         recyclerView.setHasFixedSize(true);

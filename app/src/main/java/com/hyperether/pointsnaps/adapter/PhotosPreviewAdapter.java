@@ -7,6 +7,11 @@ import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 
+import androidx.annotation.NonNull;
+import androidx.fragment.app.FragmentActivity;
+import androidx.lifecycle.ViewModelProviders;
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.bumptech.glide.Glide;
 import com.hyperether.pointsnaps.R;
 import com.hyperether.pointsnaps.ui.UserViewModel;
@@ -14,16 +19,10 @@ import com.hyperether.pointsnapssdk.repository.db.UserData;
 
 import java.util.List;
 
-import androidx.annotation.NonNull;
-import androidx.fragment.app.FragmentActivity;
-import androidx.lifecycle.ViewModelProviders;
-import androidx.recyclerview.widget.RecyclerView;
-
 public class PhotosPreviewAdapter extends RecyclerView.Adapter<PhotosPreviewAdapter.PhotosViewHolder> {
 
     private Context context;
     private List<UserData> userData;
-
     private UserViewModel userViewModel;
 
     public PhotosPreviewAdapter(Context context, List<UserData> userData) {
@@ -44,13 +43,7 @@ public class PhotosPreviewAdapter extends RecyclerView.Adapter<PhotosPreviewAdap
     @Override
     public void onBindViewHolder(@NonNull PhotosViewHolder holder, int position) {
         Glide.with(context).load(userData.get(position).getmImagePath()).into(holder.image);
-
-        holder.deleteImage.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                userViewModel.delete(userData.get(position));
-            }
-        });
+        holder.deleteImage.setOnClickListener(v -> userViewModel.delete(userData.get(position)));
     }
 
     @Override

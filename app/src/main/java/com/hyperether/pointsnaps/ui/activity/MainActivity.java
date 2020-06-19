@@ -95,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
 
         userViewModel.getLastUserDataLive().observe(this, data -> {
             UserData userData = userViewModel.getLastRecordData();
-            if(!userData.getmCompleted()){
+            if (!userData.getmCompleted()) {
                 setUIOnDatabaseLoaded(userData);
             }
         });
@@ -114,8 +114,8 @@ public class MainActivity extends AppCompatActivity {
         activityMainBinding.llLocation.setOnClickListener(locationClickListener);
         activityMainBinding.llDescription.setOnClickListener(descriptionClickListener);
         activityMainBinding.llPhoto.setOnClickListener(photoClickListener);
-        activityMainBinding.ibPhotoOpen.setOnClickListener(photoClickListener);
-        activityMainBinding.openPreviewDialog.setOnClickListener(photosPreviewClickListener);
+        activityMainBinding.rlPhotoOpen.setOnClickListener(photoClickListener);
+        activityMainBinding.openPreview.setOnClickListener(photosPreviewClickListener);
 
         if (isUserLoggedIn()) {
             getPermissions();
@@ -275,7 +275,7 @@ public class MainActivity extends AppCompatActivity {
             FragmentHandler.getInstance(MainActivity.this).openLoginDialog();
         } else {
             showProgress();
-            for (UserData userData : userViewModel.getAllPhotosListData()){
+            for (UserData userData : userViewModel.getAllPhotosListData()) {
                 uploadData(userData);
             }
         }
@@ -322,7 +322,7 @@ public class MainActivity extends AppCompatActivity {
                         createEmptyData();
                     }
                     restToUploadError = userViewModel.getAllCompletedDataList().size();
-                    if(restToUploadError == 1){
+                    if (restToUploadError == 1) {
                         alertDialog(getString(R.string.error), getString(R.string.upload_error_service));
                     }
                     dismissProgress();
@@ -348,7 +348,7 @@ public class MainActivity extends AppCompatActivity {
                             userViewModel.delete(data);
                         }
                         // 1 empty object is always in db
-                        if(restToUpload == 2){
+                        if (restToUpload == 2) {
                             dismissProgress();
                             alertDialog(getString(R.string.upload_title), getString(R.string.uploaded));
                         }
@@ -367,7 +367,7 @@ public class MainActivity extends AppCompatActivity {
                             createEmptyData();
                         }
                         restToUploadError = userViewModel.getAllCompletedDataList().size();
-                        if(restToUploadError == 1){
+                        if (restToUploadError == 1) {
                             alertDialog(getString(R.string.error), getString(R.string.upload_error_service));
                         }
                         dismissProgress();
@@ -383,7 +383,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void showProgress(){
+    private void showProgress() {
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage(getString(R.string.uploading));
         progressDialog.setCancelable(false);
@@ -419,10 +419,12 @@ public class MainActivity extends AppCompatActivity {
         if (data.getmImagePath().isEmpty()) {
             activityMainBinding.ivPhotoOpen.setVisibility(View.GONE);
             activityMainBinding.ibPhotoOpen.setVisibility(View.GONE);
+            activityMainBinding.openPreview.setVisibility(View.GONE);
             activityMainBinding.llPhoto.setVisibility(View.VISIBLE);
         } else {
             activityMainBinding.ivPhotoOpen.setVisibility(View.VISIBLE);
             activityMainBinding.ibPhotoOpen.setVisibility(View.VISIBLE);
+            activityMainBinding.openPreview.setVisibility(View.VISIBLE);
             activityMainBinding.llPhoto.setVisibility(View.GONE);
             File imgFile = new File(data.getmImagePath());
             if (imgFile.exists()) {
@@ -564,7 +566,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void addMultiplePhotos(String imagePath, String intentData){
+    private void addMultiplePhotos(String imagePath, String intentData) {
         String mDescription = userViewModel.getLastRecordData().getmDescription();
         String mAddress = userViewModel.getLastRecordData().getmAddress();
         double mLongitude = userViewModel.getLastRecordData().getmLongitude();
@@ -574,15 +576,15 @@ public class MainActivity extends AppCompatActivity {
         userViewModel.insert(userData);
     }
 
-    private void openPhotosPreviewDialog(){
+    private void openPhotosPreviewDialog() {
         PhotosPreviewFragment dialog = new PhotosPreviewFragment();
         dialog.show(getSupportFragmentManager(), "PhotosPreviewDialog");
     }
 
-    private void countPhotosData(){
+    private void countPhotosData() {
         List<UserData> userData = userViewModel.getAllPhotosListData();
         activityMainBinding.ibPhotoCount.setText(Integer.toString(userData.size()));
-        if((userData.size()) >= 6){
+        if ((userData.size()) >= 6) {
             activityMainBinding.ibPhotoOpen.setVisibility(View.GONE);
         } else {
             activityMainBinding.ibPhotoOpen.setVisibility(View.VISIBLE);

@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="160dp"
     android:layout_height="160dp"
-    android:layout_marginStart="-13dp"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    android:padding="10dp">
 
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_margin="10dp">
+        android:layout_height="match_parent">
 
         <androidx.cardview.widget.CardView
             android:id="@+id/change_photo_dialog"
@@ -22,8 +21,8 @@
 
             <ImageView
                 android:id="@+id/photo_adapter_preview"
-                android:layout_width="170dp"
-                android:layout_height="150dp"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 android:adjustViewBounds="true"
                 android:background="@android:color/transparent"
                 android:scaleType="centerCrop" />
@@ -32,14 +31,11 @@
                 android:id="@+id/photo_adapter_delete"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="top|right"
+                android:layout_gravity="top|end"
                 android:adjustViewBounds="true"
-                android:paddingTop="5dp"
                 android:background="@android:color/transparent"
+                android:padding="8dp"
                 android:src="@drawable/ic_delete_item" />
-
         </androidx.cardview.widget.CardView>
-
     </FrameLayout>
-
 </LinearLayout>
