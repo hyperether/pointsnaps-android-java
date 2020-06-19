@@ -2,11 +2,8 @@ package com.hyperether.pointsnaps;
 
 import android.app.Application;
 
-import com.crashlytics.android.Crashlytics;
 import com.hyperether.pointsnapssdk.repository.PointSnapsSdk;
 import com.hyperether.toolbox.HyperConfig;
-
-import io.fabric.sdk.android.Fabric;
 
 /**
  * Application class
@@ -26,7 +23,6 @@ public class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        Fabric.with(this, new Crashlytics());
         instance = this;
 
         new PointSnapsSdk.Builder()
