@@ -16,18 +16,12 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.hyperether.pointsnaps.R;
 import com.hyperether.pointsnaps.adapter.PhotosPreviewAdapter;
 import com.hyperether.pointsnaps.ui.UserViewModel;
-import com.hyperether.pointsnapssdk.repository.db.UserData;
-
-import java.util.List;
 
 public class PhotosPreviewFragment extends DialogFragment {
 
     private RecyclerView recyclerView;
     private PhotosPreviewAdapter adapter;
-    private List<UserData> userData;
-
     private UserViewModel userViewModel;
-
     private ImageView closeDialog;
 
     @Nullable
@@ -35,28 +29,18 @@ public class PhotosPreviewFragment extends DialogFragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.dialog_photos_preview, container, false);
 
+        recyclerView = rootView.findViewById(R.id.photo_review_recycler);
         userViewModel = ViewModelProviders.of(getActivity()).get(UserViewModel.class);
-        userData = userViewModel.getAllPhotosListData();
-
-        userViewModel.getAllPhotosLiveListData().observe(this, data -> {
-            userData.clear();
-            userData.addAll(data);
-            setupRecyclerView(rootView);
+        userViewModel.getActiveCollectionLiveData().observe(this, data -> {
+            adapter = new PhotosPreviewAdapter(getActivity(), data.getImageDataList());
+            recyclerView.setHasFixedSize(true);
+            recyclerView.setLayoutManager(new GridLayoutManager(getActivity(), 2));
+            recyclerView.setAdapter(adapter);
+            adapter.notifyDataSetChanged();
         });
-
-        setupRecyclerView(rootView);
 
         closeDialog = rootView.findViewById(R.id.close_photos_preview_dialog);
         closeDialog.setOnClickListener(v -> getDialog().dismiss());
         return rootView;
-    }
-
-    public void setupRecyclerView(View rootView) {
-        recyclerView = rootView.findViewById(R.id.photo_review_recycler);
-        adapter = new PhotosPreviewAdapter(getActivity(), userData);
-        recyclerView.setHasFixedSize(true);
-        recyclerView.setLayoutManager(new GridLayoutManager(getActivity(), 2));
-        recyclerView.setAdapter(adapter);
-        adapter.notifyDataSetChanged();
     }
 }

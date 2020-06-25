@@ -15,7 +15,6 @@ import androidx.lifecycle.ViewModelProviders;
 
 import com.hyperether.pointsnaps.R;
 import com.hyperether.pointsnaps.databinding.FragmentWriteBinding;
-import com.hyperether.pointsnapssdk.repository.db.UserData;
 import com.hyperether.pointsnaps.ui.UserViewModel;
 import com.hyperether.pointsnaps.utils.Constants;
 
@@ -60,15 +59,13 @@ public class WriteFragment extends ToolbarFragment {
         getDialog().getWindow().getAttributes().windowAnimations = R.style.DialogAnimation;
         binding.write.requestFocus();
         getDialog().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
-
-        userViewModel = ViewModelProviders.of(getActivity()).get(UserViewModel.class);
-        UserData data = userViewModel.getLastRecordData();
-        binding.setData(data);
-
-        // Show description
-        binding.write.setText(data.getmDescription());
         binding.buttonWriteOk.setOnClickListener(buttonOkListener);
 
+        userViewModel = ViewModelProviders.of(getActivity()).get(UserViewModel.class);
+        userViewModel.getActiveCollectionLiveData().observe(this, data -> {
+            binding.setData(data);
+            binding.write.setText(data.getCollectionData().getDescription());
+        });
         return view;
     }
 

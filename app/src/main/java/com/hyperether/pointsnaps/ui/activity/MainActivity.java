@@ -17,6 +17,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.Window;
+import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -42,7 +43,10 @@ import com.hyperether.pointsnapssdk.repository.api.ApiResponse;
 import com.hyperether.pointsnapssdk.repository.api.Repository;
 import com.hyperether.pointsnapssdk.repository.api.request.GetUploadUrlRequest;
 import com.hyperether.pointsnapssdk.repository.api.response.GetUploadUrlResponse;
-import com.hyperether.pointsnapssdk.repository.db.UserData;
+import com.hyperether.pointsnapssdk.repository.db.CollectionData;
+import com.hyperether.pointsnapssdk.repository.db.ImageData;
+import com.hyperether.pointsnapssdk.repository.db.SnapData;
+import com.hyperether.pointsnapssdk.repository.db.State;
 import com.hyperether.toolbox.HyperLog;
 import com.hyperether.toolbox.graphic.HyperImageProcessing;
 import com.hyperether.toolbox.permission.OnPermissionRequest;
@@ -84,27 +88,22 @@ public class MainActivity extends AppCompatActivity {
         setupToolbar();
 
         userViewModel = ViewModelProviders.of(MainActivity.this).get(UserViewModel.class);
-        List<UserData> users = userViewModel.getAllUserDatalist();
-        if (users.isEmpty()) {
-            createEmptyData();
-        }
-
-        userViewModel.getLastUserDataLive().observe(this, data -> {
-            UserData userData = userViewModel.getLastRecordData();
-            if (!userData.getmCompleted()) {
-                setUIOnDatabaseLoaded(userData);
+        userViewModel.getActiveCollectionLiveData().observe(this, data -> {
+            if (data == null) {
+                createEmptyData();
+            } else {
+                userViewModel.setCollectionId(data.getCollectionData().getId());
+                setUIOnDatabaseLoaded(data);
+                countPhotosData(data.getImageDataList().size());
             }
         });
-
-        userViewModel.getAllPhotosLiveListData().observe(this, data -> {
-            countPhotosData();
+        userViewModel.getUploadListLiveData().observe(this, snapDataList -> {
+            if (snapDataList != null)
+                for (SnapData snapData : snapDataList) {
+                    userViewModel.setUploading(snapData.getCollectionData().getId());
+                    uploadData(snapData);
+                }
         });
-
-        for (UserData user : users) {
-            if (user.mCompleted) {
-                uploadData(user);
-            }
-        }
 
         activityMainBinding.llUpload.setOnClickListener(uploadClickListener);
         activityMainBinding.llLocation.setOnClickListener(locationClickListener);
@@ -115,9 +114,9 @@ public class MainActivity extends AppCompatActivity {
 
         if (isUserLoggedIn()) {
             getPermissions();
+        } else {
+            FragmentHandler.getInstance(MainActivity.this).openLoginDialog();
         }
-
-        countPhotosData();
     }
 
     @Override
@@ -223,12 +222,9 @@ public class MainActivity extends AppCompatActivity {
 
         toolbar.setLogo(ContextCompat.getDrawable(getApplicationContext(), R.drawable.logo));
         View view = toolbar.getChildAt(1);
-        view.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://pointsnaps.com"));
-                startActivity(intent);
-            }
+        view.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://pointsnaps.com"));
+            startActivity(intent);
         });
 
         ImageView imageBack = findViewById(R.id.toolbar_image_back);
@@ -264,111 +260,86 @@ public class MainActivity extends AppCompatActivity {
     private OnClickListener descriptionClickListener = v ->
             FragmentHandler.getInstance(MainActivity.this).openWriteDialog();
 
-    private OnClickListener uploadClickListener = v -> uploadData();
+    private OnClickListener uploadClickListener = v -> {
+        userViewModel.setCompleted();
+    };
 
-    private void uploadData() {
-        if (!isUserLoggedIn()) {
-            FragmentHandler.getInstance(MainActivity.this).openLoginDialog();
-        } else {
+    private void uploadData(SnapData data) {
+        final List<ImageData> imageDataList = data.getImageDataList();
+        if (imageDataList != null && !imageDataList.isEmpty()) {
+
+            GetUploadUrlRequest request = new GetUploadUrlRequest();
+            List<String> images = new ArrayList<>();
+            for (ImageData imageData : imageDataList) {
+                String filePath = imageData.imagePath;
+                final File file = new File(filePath);
+                final String fileName = file.getName().replace(".jpg", "");
+                if (request.getFile() == null)
+                    request.setFile(fileName);
+                final String fileExt = filePath.substring(filePath.lastIndexOf(".") + 1);
+                if (request.getExt() == null)
+                    request.setExt(fileExt);
+                String type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileExt);
+                images.add(type);
+            }
+
+            request.setImages(images);
+            request.setDescription(data.getCollectionData().getDescription());
+            if (data.getCollectionData().getLatitude() > 0
+                    && data.getCollectionData().getLongitude() > 0) {
+                request.setLat(data.getCollectionData().getLatitude());
+                request.setLon(data.getCollectionData().getLongitude());
+            }
+            if (!data.getCollectionData().getAddress().isEmpty()) {
+                request.setAddress(data.getCollectionData().getAddress());
+            }
+
             showProgress();
-            for (UserData userData : userViewModel.getAllPhotosListData()) {
-                uploadData(userData);
-            }
-        }
-    }
-
-    private void uploadData(UserData data) {
-        final String filePath = data.getmImagePath();
-        if (filePath != null && !filePath.isEmpty()) {
-
-            final File file = new File(filePath);
-            final String fileName = file.getName().replace(".jpg", "");
-            final String fileExt = filePath.substring(filePath.lastIndexOf(".") + 1);
-
-            Bitmap bitmap = HyperImageProcessing.getBitmapRotated(new File(filePath), Constants.PHOTO_WIDTH);
-
-            GetUploadUrlRequest request = new GetUploadUrlRequest(fileName, fileExt);
-            request.setDescription(data.getmDescription());
-            if (data.getmLatitude() > 0 && data.getmLatitude() > 0) {
-                request.setLat(data.getmLatitude());
-                request.setLon(data.getmLongitude());
-            }
-            if (!data.getmAddress().isEmpty()) {
-                request.setAddress(data.getmAddress());
-            }
-
             Repository.getInstance().getUploadUrl(SharedPref.getToken(), request, new ApiResponse() {
                 @Override
                 public void onSuccess(Object response) {
                     GetUploadUrlResponse getUploadUrlResponse = (GetUploadUrlResponse) response;
-                    uploadToS3(bitmap, getUploadUrlResponse, data);
+                    uploadToS3(imageDataList, getUploadUrlResponse);
+                    dismissProgress();
+                    userViewModel.setUploaded(data.getCollectionData().getId());
                 }
 
                 @Override
                 public void onError(String message) {
-                    // TODO: check this logic
-                    userViewModel.updateStateToTrue(data.getId());
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            setUIOnDatabaseLoaded(userViewModel.getAllCompletedDataList().get(0));
-                        }
-                    });
-                    if (userViewModel.getAllCompletedDataList().isEmpty()) {
-                        createEmptyData();
-                    }
-                    restToUploadError = userViewModel.getAllCompletedDataList().size();
-                    if (restToUploadError == 1) {
-                        alertDialog(getString(R.string.error), getString(R.string.upload_error_service));
-                    }
+                    alertDialog(getString(R.string.error), getString(R.string.upload_error_service));
                     dismissProgress();
+                    userViewModel.setReadyForUpload(data.getCollectionData().getId());
                 }
             });
         }
     }
 
-    private void uploadToS3(Bitmap bitmap, GetUploadUrlResponse getUploadUrlResponse, UserData data) {
-        String getUrl = getUploadUrlResponse.getUrl();
+    private void uploadToS3(List<ImageData> imageDataList,
+                            GetUploadUrlResponse getUploadUrlResponse) {
         String fileId = getUploadUrlResponse.getFileId();
-        String url = getUrl.substring(getUrl.lastIndexOf("/") + 1);
+        List<String> urls = getUploadUrlResponse.getUrls();
+        for (int i = 0; i < urls.size(); i++) {
+            String getUrl = urls.get(i);
+            ImageData imageData = imageDataList.get(i);
+            imageData.imageUrl = getUrl;
+            userViewModel.update(imageData);
+            String filePath = imageData.imagePath;
+            String url = getUrl.substring(getUrl.lastIndexOf("/") + 1);
+            Bitmap bitmap = HyperImageProcessing.getBitmapRotated(new File(filePath), Constants.PHOTO_WIDTH);
 
-        Repository.getInstance().uploadToS3(url, bitmap, fileId, Constants.PHOTO_COMPRESSION,
-                new ApiResponse() {
-                    @Override
-                    public void onSuccess(Object response) {
-                        if (data != null) {
-                            if (data.getmImagePath().equals("")) {
-                                createEmptyData();
-                            }
-                            restToUpload = userViewModel.getAllCompletedDataList().size();
-                            userViewModel.delete(data);
-                        }
-                        // 1 empty object is always in db
-                        if (restToUpload == 2) {
-                            dismissProgress();
-                            alertDialog(getString(R.string.upload_title), getString(R.string.uploaded));
-                        }
-                    }
+            userViewModel.setImageUploading(url);
+            Repository.getInstance().uploadToS3(url, bitmap, fileId, Constants.PHOTO_COMPRESSION, new ApiResponse() {
+                @Override
+                public void onSuccess(Object response) {
+                    userViewModel.setImageUploaded(url);
+                }
 
-                    @Override
-                    public void onError(String message) {
-                        userViewModel.updateStateToTrue(data.getId());
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                setUIOnDatabaseLoaded(userViewModel.getAllCompletedDataList().get(0));
-                            }
-                        });
-                        if (userViewModel.getAllCompletedDataList().isEmpty()) {
-                            createEmptyData();
-                        }
-                        restToUploadError = userViewModel.getAllCompletedDataList().size();
-                        if (restToUploadError == 1) {
-                            alertDialog(getString(R.string.error), getString(R.string.upload_error_service));
-                        }
-                        dismissProgress();
-                    }
-                });
+                @Override
+                public void onError(String message) {
+                    userViewModel.setImageUploadFailed(url);
+                }
+            });
+        }
     }
 
     private void dismissProgress() {
@@ -387,21 +358,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void createEmptyData() {
-        UserData userDataStart = new UserData("", "", "", 0.0, 0.0, false, "");
-        userViewModel.insert(userDataStart);
+        CollectionData data = new CollectionData("", "", 0.0, 0.0, State.ACTIVE.name());
+        userViewModel.insert(data);
     }
 
-    private void setUIOnDatabaseLoaded(UserData data) {
+    private void setUIOnDatabaseLoaded(SnapData data) {
         // Upload
-        if (data.getmImagePath().isEmpty()) {
+        if (data.getImageDataList().isEmpty()) {
             activityMainBinding.tvUpload.setText(getString(R.string.take_a_photo));
             activityMainBinding.ivUpload.setImageResource(R.drawable.ic_camera_btn);
             activityMainBinding.llUpload.setOnClickListener(photoClickListener);
-        } else if (data.getmAddress().isEmpty()) {
+        } else if (data.getCollectionData().getAddress().isEmpty()) {
             activityMainBinding.tvUpload.setText(getString(R.string.title_activity_location));
             activityMainBinding.ivUpload.setImageResource(R.drawable.ic_location_btn);
             activityMainBinding.llUpload.setOnClickListener(locationClickListener);
-        } else if (data.getmDescription().isEmpty()) {
+        } else if (data.getCollectionData().getDescription().isEmpty()) {
             activityMainBinding.tvUpload.setText(getString(R.string.description_text));
             activityMainBinding.ivUpload.setImageResource(R.drawable.ic_description_btn);
             activityMainBinding.llUpload.setOnClickListener(descriptionClickListener);
@@ -412,17 +383,19 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // Photo
-        if (data.getmImagePath().isEmpty()) {
+        if (data.getImageDataList().isEmpty()) {
             activityMainBinding.ivPhotoOpen.setVisibility(View.GONE);
             activityMainBinding.ibPhotoOpen.setVisibility(View.GONE);
+            activityMainBinding.rlPhotoOpen.setVisibility(View.GONE);
             activityMainBinding.openPreview.setVisibility(View.GONE);
             activityMainBinding.llPhoto.setVisibility(View.VISIBLE);
         } else {
             activityMainBinding.ivPhotoOpen.setVisibility(View.VISIBLE);
             activityMainBinding.ibPhotoOpen.setVisibility(View.VISIBLE);
+            activityMainBinding.rlPhotoOpen.setVisibility(View.VISIBLE);
             activityMainBinding.openPreview.setVisibility(View.VISIBLE);
             activityMainBinding.llPhoto.setVisibility(View.GONE);
-            File imgFile = new File(data.getmImagePath());
+            File imgFile = new File(data.getImageDataList().get(0).imagePath);
             if (imgFile.exists()) {
                 Glide.with(MainActivity.this).load(imgFile).into(activityMainBinding.ivPhotoOpen);
             } else {
@@ -431,24 +404,26 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // Location
-        activityMainBinding.llLocation.setEnabled(!data.getmImagePath().isEmpty() || !data.getmAddress().isEmpty());
+        activityMainBinding.llLocation.setEnabled(!data.getImageDataList().isEmpty() ||
+                !data.getCollectionData().getAddress().isEmpty());
         activityMainBinding.tvLocation.setTextSize(16);
-        if (data.getmAddress().isEmpty()) {
+        if (data.getCollectionData().getAddress().isEmpty()) {
             activityMainBinding.tvLocation.setText(R.string.title_activity_location);
             activityMainBinding.ivLocation.setImageResource(R.drawable.ic_location);
         } else {
-            activityMainBinding.tvLocation.setText(data.getmAddress());
+            activityMainBinding.tvLocation.setText(data.getCollectionData().getAddress());
             activityMainBinding.ivLocation.setImageResource(R.drawable.ic_location_done);
         }
 
         // Description
-        activityMainBinding.llDescription.setEnabled(!data.getmAddress().isEmpty() || !data.getmDescription().isEmpty());
+        activityMainBinding.llDescription.setEnabled(!data.getCollectionData().getAddress().isEmpty() ||
+                !data.getCollectionData().getDescription().isEmpty());
         activityMainBinding.tvDescription.setTextSize(16);
-        if (data.getmDescription().isEmpty()) {
+        if (data.getCollectionData().getDescription().isEmpty()) {
             activityMainBinding.tvDescription.setText(R.string.description_text);
             activityMainBinding.ivDescription.setImageResource(R.drawable.ic_description);
         } else {
-            activityMainBinding.tvDescription.setText(data.getmDescription());
+            activityMainBinding.tvDescription.setText(data.getCollectionData().getDescription());
             activityMainBinding.ivDescription.setImageResource(R.drawable.ic_description_done);
         }
     }
@@ -563,13 +538,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void addMultiplePhotos(String imagePath, String intentData) {
-        String mDescription = userViewModel.getLastRecordData().getmDescription();
-        String mAddress = userViewModel.getLastRecordData().getmAddress();
-        double mLongitude = userViewModel.getLastRecordData().getmLongitude();
-        double mLatitude = userViewModel.getLastRecordData().getmLatitude();
-
-        UserData userData = new UserData(mDescription, imagePath, mAddress, mLongitude, mLatitude, false, intentData);
-        userViewModel.insert(userData);
+        ImageData imageData = new ImageData();
+        imageData.imageIntentData = intentData;
+        imageData.imagePath = imagePath;
+        userViewModel.insert(imageData);
     }
 
     private void openPhotosPreviewDialog() {
@@ -577,10 +549,9 @@ public class MainActivity extends AppCompatActivity {
         dialog.show(getSupportFragmentManager(), "PhotosPreviewDialog");
     }
 
-    private void countPhotosData() {
-        List<UserData> userData = userViewModel.getAllPhotosListData();
-        activityMainBinding.ibPhotoCount.setText(Integer.toString(userData.size()));
-        if ((userData.size()) >= 6) {
+    private void countPhotosData(int imageListSize) {
+        activityMainBinding.ibPhotoCount.setText(Integer.toString(imageListSize));
+        if ((imageListSize) >= 6) {
             activityMainBinding.ibPhotoOpen.setVisibility(View.GONE);
         } else {
             activityMainBinding.ibPhotoOpen.setVisibility(View.VISIBLE);

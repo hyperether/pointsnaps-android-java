@@ -6,92 +6,100 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 
-import com.hyperether.pointsnapssdk.repository.db.UserData;
-import com.hyperether.pointsnapssdk.repository.db.UserRepository;
+import com.hyperether.pointsnapssdk.repository.db.CollectionData;
+import com.hyperether.pointsnapssdk.repository.db.ImageData;
+import com.hyperether.pointsnapssdk.repository.db.Repository;
+import com.hyperether.pointsnapssdk.repository.db.SnapData;
 
 import java.util.List;
 
 public class UserViewModel extends AndroidViewModel {
 
-    private UserRepository repository;
-    private LiveData<List<UserData>> allData;
+    private Repository repository;
+    private int collectionId;
+    private LiveData<SnapData> snapDataLiveData;
 
     public UserViewModel(@NonNull Application application) {
         super(application);
-        repository = UserRepository.getInstance(application);
-        allData = repository.getLastUserDataLive();
+        repository = Repository.getInstance(application);
+        snapDataLiveData = repository.getActiveCollectionLiveData();
     }
 
-    public void insert(UserData data) {
+    public int getCollectionId() {
+        return collectionId;
+    }
+
+    public void setCollectionId(int collectionId) {
+        this.collectionId = collectionId;
+    }
+
+    public void insert(CollectionData data) {
         repository.insert(data);
     }
 
-    public void delete(UserData data) {
+    public void delete(CollectionData data) {
         repository.delete(data);
     }
 
-    public void update(UserData data) {
+    public void insert(ImageData data) {
+        data.collectionId = collectionId;
+        repository.insert(data);
+    }
+
+    public void update(ImageData data) {
         repository.update(data);
     }
 
-    public void deleteAllUserData() {
-        repository.deleteAllUserData();
+    public void delete(ImageData data) {
+        repository.delete(data);
     }
 
-    public LiveData<List<UserData>> getLastUserDataLive() {
-        return repository.getLastUserDataLive();
+    public LiveData<SnapData> getActiveCollectionLiveData() {
+        return snapDataLiveData;
     }
 
-    public List<UserData> getAllCompletedDataList() {
-        return repository.getAllCompletedDataList();
+    public LiveData<List<SnapData>> getUploadListLiveData() {
+        return repository.getUploadListLiveData();
     }
 
-    public LiveData<List<UserData>> getAllCompletedLiveDataList() {
-        return repository.getAllCompletedLiveDataList();
-    }
-
-    public List<UserData> getAllPhotosListData(){
-        return repository.getAllPhotosDataList();
-    }
-
-    public LiveData<List<UserData>> getAllPhotosLiveListData(){
-        return repository.getAllPhotosLiveDataList();
-    }
-
-    public List<UserData> getAllUserDatalist() {
-        return repository.getAllUserDataList();
-    }
-
-    public UserData getLastRecordData() {
-        return repository.getLastRecordData();
-    }
-
-    public void updateImage(String imagePath) {
-        repository.updateImagePath(imagePath);
-    }
-
-    public void updateAddress(String address, double longitude, double latitude) {
-        repository.updateAddress(address, longitude, latitude);
-    }
-
-    public void deleteImage() {
-        repository.deleteImagePath();
+    public void updateLocation(String address, double longitude, double latitude) {
+        repository.updateLocation(address, longitude, latitude, collectionId);
     }
 
     public void updateDescription(String description) {
-        repository.updateDescription(description);
+        repository.updateDescription(description, collectionId);
     }
 
-    public void updateCompletedState(Boolean completed) {
-        repository.updateCompletedState(completed);
+    public void setCompleted() {
+        repository.setCompleted(collectionId);
     }
 
-    public void updateStateToTrue(int userDataId){
-        repository.updateStateToTrue(userDataId);
+    public void setReadyForUpload(int collectionId) {
+        repository.setCompleted(collectionId);
     }
 
-    public void updateIntentData(String data) {
-        repository.updateIntentData(data);
+    public void setUploading(int collectionId) {
+        repository.setUploading(collectionId);
+    }
+
+    public void setUploaded(int collectionId) {
+        repository.setUploaded(collectionId);
+    }
+
+    public void setImageUploaded(String imageUrl) {
+        repository.setImageUploaded(imageUrl);
+    }
+
+    public void setImageUploading(String imageUrl) {
+        repository.setImageUploading(imageUrl);
+    }
+
+    public void setImageReadyForUpload(String imageUrl) {
+        repository.setImageReadyForUpload(imageUrl);
+    }
+
+    public void setImageUploadFailed(String imageUrl) {
+        repository.setImageUploadFailed(imageUrl);
     }
 }
 

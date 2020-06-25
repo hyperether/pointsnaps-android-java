@@ -15,19 +15,19 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.hyperether.pointsnaps.R;
 import com.hyperether.pointsnaps.ui.UserViewModel;
-import com.hyperether.pointsnapssdk.repository.db.UserData;
+import com.hyperether.pointsnapssdk.repository.db.ImageData;
 
 import java.util.List;
 
 public class PhotosPreviewAdapter extends RecyclerView.Adapter<PhotosPreviewAdapter.PhotosViewHolder> {
 
     private Context context;
-    private List<UserData> userData;
+    private List<ImageData> dataList;
     private UserViewModel userViewModel;
 
-    public PhotosPreviewAdapter(Context context, List<UserData> userData) {
+    public PhotosPreviewAdapter(Context context, List<ImageData> dataList) {
         this.context = context;
-        this.userData = userData;
+        this.dataList = dataList;
 
         userViewModel = ViewModelProviders.of((FragmentActivity) context).get(UserViewModel.class);
     }
@@ -42,13 +42,13 @@ public class PhotosPreviewAdapter extends RecyclerView.Adapter<PhotosPreviewAdap
 
     @Override
     public void onBindViewHolder(@NonNull PhotosViewHolder holder, int position) {
-        Glide.with(context).load(userData.get(position).getmImagePath()).into(holder.image);
-        holder.deleteImage.setOnClickListener(v -> userViewModel.delete(userData.get(position)));
+        Glide.with(context).load(dataList.get(position).imagePath).into(holder.image);
+        holder.deleteImage.setOnClickListener(v -> userViewModel.delete(dataList.get(position)));
     }
 
     @Override
     public int getItemCount() {
-        return userData.size();
+        return dataList.size();
     }
 
     public class PhotosViewHolder extends RecyclerView.ViewHolder {

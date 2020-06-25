@@ -91,6 +91,9 @@ public class LocationFragment extends ToolbarFragment implements OnMapReadyCallb
         getDialog().getWindow().getAttributes().windowAnimations = R.style.DialogAnimation;
 
         userViewModel = ViewModelProviders.of(getActivity()).get(UserViewModel.class);
+        userViewModel.getActiveCollectionLiveData().observe(this, data -> {
+            binding.setData(data.getCollectionData());
+        });
 
         mProgressDialog = new ProgressDialog(getActivity());
         mProgressDialog.setMessage(getResources().getString(R.string.locating));
@@ -168,8 +171,8 @@ public class LocationFragment extends ToolbarFragment implements OnMapReadyCallb
             isMapInitialisationStarted = true;
 
             LocationRequest locationRequest = new LocationRequest();
-            locationRequest.setInterval(10000);
-            locationRequest.setFastestInterval(3000);
+            locationRequest.setInterval(1000);
+            locationRequest.setFastestInterval(1000);
             locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
             LocationServices.getFusedLocationProviderClient(getActivity())
@@ -240,7 +243,7 @@ public class LocationFragment extends ToolbarFragment implements OnMapReadyCallb
                     latitude = location.getLatitude();
                     longitude = location.getLongitude();
 
-                    userViewModel.updateAddress(locatedAddress, longitude, latitude);
+                    userViewModel.updateLocation(locatedAddress, longitude, latitude);
                     addressChagned = locatedAddress;
                 }
             } catch (IOException e) {
@@ -251,7 +254,7 @@ public class LocationFragment extends ToolbarFragment implements OnMapReadyCallb
 
     private void checkLocationChanged(EditText address) {
         if (!addressChagned.equals(address.getText().toString())) {
-            userViewModel.updateAddress(address.getText().toString(), longitude, latitude);
+            userViewModel.updateLocation(address.getText().toString(), longitude, latitude);
         }
     }
 
