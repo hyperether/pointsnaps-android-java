@@ -7,8 +7,6 @@ import android.graphics.drawable.BitmapDrawable;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Looper;
 import android.view.LayoutInflater;
@@ -17,7 +15,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 
-import androidx.core.app.ActivityCompat.OnRequestPermissionsResultCallback;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.DialogFragment;
 import androidx.lifecycle.ViewModelProviders;
@@ -48,27 +45,29 @@ import java.util.Locale;
 /**
  * Fragment for search user location (address) on map
  *
- * @author Marko Katic
- * @version 1.0 - 07/04/2017
+ * @author Slobodan Prijic
+ * @version 1.1 - 03/07/2020
  */
-public class LocationFragment extends ToolbarFragment implements OnMapReadyCallback,
-        OnRequestPermissionsResultCallback, LocationListener {
+public class LocationFragment extends ToolbarFragment implements OnMapReadyCallback {
 
     public static final String TAG = Constants.LOCATION_FRAGMENT_TAG;
+    private static final float MIN_ACCURACY = 100.0f;
+    private static final float MIN_DISTANCE_THRESHOLD = 20.0f;
+
     private GoogleMap mMap;
-    private String addressChagned = "";
+    private SupportMapFragment mapFragment;
+    private Marker mMarker = null;
     private ProgressDialog mProgressDialog;
-    private Location location;
+
+    private LocationCallback locationCallback;
+    private boolean requestLocationUpdates;
+
+    private Location lastLocation;
+    private String lastAddress = "";
     private Double longitude = 0.0;
     private Double latitude = 0.0;
-    private Marker mMarker = null;
-    private boolean isMapInitialisationStarted;
-    private LocationManager locationManager;
-    SupportMapFragment mapFragment;
 
-    //ROOM db
     private UserViewModel userViewModel;
-
     private FragmentLocationBinding binding;
 
     public static LocationFragment newInstance() {
@@ -101,17 +100,40 @@ public class LocationFragment extends ToolbarFragment implements OnMapReadyCallb
 
         /*
         SupportMapFragment mapFragment = (SupportMapFragment) this.getChildFragmentManager().findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
          */
-
         mapFragment = (SupportMapFragment) getActivity().getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        locationManager = (LocationManager) getActivity().getSystemService(Context
-                .LOCATION_SERVICE);
-
         binding.buttonLocationOk.setOnClickListener(buttonOkListener);
         binding.buttonLocationCancel.setOnClickListener(buttonCancelListener);
+
+        locationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                if (locationResult == null) {
+                    return;
+                }
+                for (Location location : locationResult.getLocations()) {
+                    if (location != null) {
+                        if (lastLocation != null) {
+                            if (location.getAccuracy() < MIN_ACCURACY) {
+                                float distance = location.distanceTo(lastLocation);
+                                if (distance > MIN_DISTANCE_THRESHOLD ||
+                                        location.getAccuracy() < lastLocation.getAccuracy()) {
+                                    lastLocation = location;
+                                    updateAddress(location);
+                                    updateMap(location);
+                                }
+                            }
+                        } else {
+                            lastLocation = location;
+                            updateAddress(location);
+                            updateMap(location);
+                        }
+                    }
+                }
+            }
+        };
 
         return view;
     }
@@ -119,13 +141,20 @@ public class LocationFragment extends ToolbarFragment implements OnMapReadyCallb
     @Override
     public void onResume() {
         super.onResume();
-        mapInitialisation();
+        startRequestingLocationUpdates();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        LocationServices.getFusedLocationProviderClient(getActivity())
+                .removeLocationUpdates(locationCallback);
+        requestLocationUpdates = false;
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        flushLocationListener();
         checkLocationChanged(binding.addressView);
         if (mapFragment != null)
             getFragmentManager().beginTransaction().remove(mapFragment).commit();
@@ -158,7 +187,31 @@ public class LocationFragment extends ToolbarFragment implements OnMapReadyCallb
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        mapInitialisation();
+    }
+
+    private synchronized void updateMap(Location location) {
+        if (mMap != null) {
+            mMap.setMyLocationEnabled(true);
+            mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+            mMap.getUiSettings().setZoomControlsEnabled(true);
+            LatLng loc = new LatLng(location.getLatitude(), location.getLongitude());
+            mProgressDialog.dismiss();
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(loc, 16.0f));
+            if (mMarker != null) {
+                mMarker.remove();
+            }
+
+            int height = 70;
+            int width = 70;
+            BitmapDrawable bmDraw = (BitmapDrawable) getResources().getDrawable(R.drawable.app_icon);
+            Bitmap b = bmDraw.getBitmap();
+            Bitmap smallMarker = Bitmap.createScaledBitmap(b, width, height, false);
+            mMarker = mMap.addMarker(new MarkerOptions()
+                    .position(loc)
+                    .icon(BitmapDescriptorFactory.fromBitmap(smallMarker))
+                    .draggable(true));
+
+        }
     }
 
     /*
@@ -166,136 +219,56 @@ public class LocationFragment extends ToolbarFragment implements OnMapReadyCallb
      *
      * */
 
-    private synchronized void mapInitialisation() {
-        if (!isMapInitialisationStarted) {
-            isMapInitialisationStarted = true;
+    private synchronized void startRequestingLocationUpdates() {
+        if (!requestLocationUpdates) {
+            requestLocationUpdates = true;
 
             LocationRequest locationRequest = new LocationRequest();
             locationRequest.setInterval(1000);
             locationRequest.setFastestInterval(1000);
             locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-
             LocationServices.getFusedLocationProviderClient(getActivity())
-                    .requestLocationUpdates(locationRequest, new LocationCallback() {
-                        @Override
-                        public void onLocationResult(LocationResult locationResult) {
-                            super.onLocationResult(locationResult);
-                            LocationServices.getFusedLocationProviderClient(getActivity())
-                                    .removeLocationUpdates(this);
-                            if (locationResult != null && locationResult.getLocations().size() > 0) {
-                                location = locationResult.getLocations().get(0);
-                                if (mMap != null && location != null) {
-                                    mMap.setMyLocationEnabled(true);
-                                    mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
-                                    mMap.getUiSettings().setZoomControlsEnabled(true);
-                                    LatLng loc = new LatLng(location.getLatitude(), location.getLongitude());
-                                    mProgressDialog.dismiss();
-                                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(loc, 16.0f));
-                                    if (mMarker != null) {
-                                        mMarker.remove();
-                                    }
-
-                                    int height = 70;
-                                    int width = 70;
-                                    BitmapDrawable bmDraw = (BitmapDrawable) getResources().getDrawable(R.drawable.app_icon);
-                                    Bitmap b = bmDraw.getBitmap();
-                                    Bitmap smallMarker = Bitmap.createScaledBitmap(b, width, height, false);
-                                    mMarker = mMap.addMarker(new MarkerOptions()
-                                            .position(loc)
-                                            .icon(BitmapDescriptorFactory.fromBitmap(smallMarker))
-                                            .draggable(true));
-                                    updateAddress(location);
-                                } else {
-                                    // Map is not initialised, so you can start again by setting
-                                    // isMapInitialisationStarted to false value
-                                    isMapInitialisationStarted = false;
-                                }
-                            }
-                        }
-                    }, Looper.getMainLooper());
+                    .requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
         }
     }
 
     private void updateAddress(Location location) {
-        if (location != null) {
-            Context context = App.getInstance().getApplicationContext();
-            Geocoder geocoder = new Geocoder(context, Locale.getDefault());
-            try {
-                List<Address> addresses = geocoder.getFromLocation(location.getLatitude(),
-                        location.getLongitude(), 1);
+        if (location == null)
+            return;
 
-                if (addresses != null) {
-                    Address returnedAddress = addresses.get(0);
+        Context context = App.getInstance().getApplicationContext();
+        Geocoder geocoder = new Geocoder(context, Locale.getDefault());
+        try {
+            List<Address> addresses = geocoder.getFromLocation(location.getLatitude(),
+                    location.getLongitude(), 1);
 
-                    String locatedAddress = "";
-                    String strReturnedAddress;
-                    if (returnedAddress.getThoroughfare() == null || returnedAddress.getFeatureName() == null) {
-                        strReturnedAddress = getResources().getString(R.string.unknown_road) + " , " + returnedAddress.getLocality();
-                    } else if (returnedAddress.getLocality() == null) {
-                        strReturnedAddress = getResources().getString(R.string.unknown_road);
-                    } else {
-                        strReturnedAddress = returnedAddress.getThoroughfare() + " " +
-                                returnedAddress.getFeatureName() + ", " + returnedAddress.getLocality();
-                        locatedAddress = strReturnedAddress;
-                    }
-
-                    binding.addressView.setText(strReturnedAddress);
-                    latitude = location.getLatitude();
-                    longitude = location.getLongitude();
-
-                    userViewModel.updateLocation(locatedAddress, longitude, latitude);
-                    addressChagned = locatedAddress;
+            if (addresses != null) {
+                Address address = addresses.get(0);
+                String sAddress = "";
+                if (address.getThoroughfare() != null && address.getFeatureName() != null) {
+                    sAddress += address.getThoroughfare() + " " + address.getFeatureName();
+                } else {
+                    sAddress += getResources().getString(R.string.unknown_road);
                 }
-            } catch (IOException e) {
-                HyperLog.getInstance().e(TAG, "updateLocation", e.getMessage());
+                if (address.getLocality() != null) {
+                    sAddress += ", " + address.getLocality();
+                }
+
+                binding.addressView.setText(sAddress);
+                latitude = location.getLatitude();
+                longitude = location.getLongitude();
+
+                userViewModel.updateLocation(sAddress, longitude, latitude);
+                lastAddress = sAddress;
             }
+        } catch (IOException e) {
+            HyperLog.getInstance().e(TAG, "updateLocation", e.getMessage());
         }
     }
 
     private void checkLocationChanged(EditText address) {
-        if (!addressChagned.equals(address.getText().toString())) {
+        if (!lastAddress.equals(address.getText().toString())) {
             userViewModel.updateLocation(address.getText().toString(), longitude, latitude);
         }
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-        if (this.location == null) {
-            this.location = location;
-            flushLocationListener();
-            mapInitialisation();
-        }
-    }
-
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-
-    }
-
-    @Override
-    public void onProviderEnabled(String provider) {
-        if (provider.equals(LocationManager.GPS_PROVIDER) && location == null) {
-            if (isMapInitialisationStarted) {
-                // To start mapInitialisation with first known location flag must be set to false
-                isMapInitialisationStarted = false;
-            }
-            mapInitialisation();
-        }
-    }
-
-    @Override
-    public void onProviderDisabled(String provider) {
-
-    }
-
-    /*
-     * Removes location updates and clear location management flags
-     *
-     * */
-    private void flushLocationListener() {
-        if (locationManager != null) {
-            locationManager.removeUpdates(this);
-        }
-        isMapInitialisationStarted = false;
     }
 }
