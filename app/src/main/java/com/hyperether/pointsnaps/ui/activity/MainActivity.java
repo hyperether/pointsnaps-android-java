@@ -33,6 +33,7 @@ import androidx.lifecycle.ViewModelProviders;
 import com.bumptech.glide.Glide;
 import com.hyperether.pointsnaps.R;
 import com.hyperether.pointsnaps.databinding.ActivityMainBinding;
+import com.hyperether.pointsnaps.manager.Connectivity;
 import com.hyperether.pointsnaps.manager.FragmentHandler;
 import com.hyperether.pointsnaps.manager.ImageManager;
 import com.hyperether.pointsnaps.ui.UserViewModel;
@@ -99,9 +100,11 @@ public class MainActivity extends AppCompatActivity {
         });
         userViewModel.getUploadListLiveData().observe(this, snapDataList -> {
             if (snapDataList != null)
-                for (SnapData snapData : snapDataList) {
-                    userViewModel.setUploading(snapData.getCollectionData().getId());
-                    uploadData(snapData);
+                if (Connectivity.isConnected()) {
+                    for (SnapData snapData : snapDataList) {
+                        userViewModel.setUploading(snapData.getCollectionData().getId());
+                        uploadData(snapData);
+                    }
                 }
         });
 
@@ -306,9 +309,17 @@ public class MainActivity extends AppCompatActivity {
 
                 @Override
                 public void onError(String message) {
-                    alertDialog(getString(R.string.error), getString(R.string.upload_error_service));
+                    if (message != null && !message.isEmpty()) {
+                        alertDialog(getString(R.string.error), message);
+                    } else {
+                        alertDialog(getString(R.string.error), getString(R.string.upload_error_service));
+                    }
                     dismissProgress();
-                    userViewModel.setReadyForUpload(data.getCollectionData().getId());
+                    if ("Wrong locations params".equals(message)) {
+                        userViewModel.delete(data.getCollectionData());
+                    } else {
+                        userViewModel.setReadyForUpload(data.getCollectionData().getId());
+                    }
                 }
             });
         }
@@ -346,15 +357,18 @@ public class MainActivity extends AppCompatActivity {
         runOnUiThread(() -> {
             if (progressDialog != null) {
                 progressDialog.dismiss();
+                progressDialog = null;
             }
         });
     }
 
     private void showProgress() {
-        progressDialog = new ProgressDialog(this);
-        progressDialog.setMessage(getString(R.string.uploading));
-        progressDialog.setCancelable(false);
-        progressDialog.show();
+        if (progressDialog == null) {
+            progressDialog = new ProgressDialog(this);
+            progressDialog.setMessage(getString(R.string.uploading));
+            progressDialog.setCancelable(false);
+            progressDialog.show();
+        }
     }
 
     private void createEmptyData() {
@@ -363,12 +377,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setUIOnDatabaseLoaded(SnapData data) {
+        boolean isLocationSet = data.getCollectionData().getLatitude() != 0.0 &&
+                data.getCollectionData().getLongitude() != 0.0;
         // Upload
         if (data.getImageDataList().isEmpty()) {
             activityMainBinding.tvUpload.setText(getString(R.string.take_a_photo));
             activityMainBinding.ivUpload.setImageResource(R.drawable.ic_camera_btn);
             activityMainBinding.llUpload.setOnClickListener(photoClickListener);
-        } else if (data.getCollectionData().getAddress().isEmpty()) {
+        } else if (!isLocationSet) {
             activityMainBinding.tvUpload.setText(getString(R.string.title_activity_location));
             activityMainBinding.ivUpload.setImageResource(R.drawable.ic_location_btn);
             activityMainBinding.llUpload.setOnClickListener(locationClickListener);
@@ -405,9 +421,9 @@ public class MainActivity extends AppCompatActivity {
 
         // Location
         activityMainBinding.llLocation.setEnabled(!data.getImageDataList().isEmpty() ||
-                !data.getCollectionData().getAddress().isEmpty());
+                isLocationSet);
         activityMainBinding.tvLocation.setTextSize(16);
-        if (data.getCollectionData().getAddress().isEmpty()) {
+        if (!isLocationSet) {
             activityMainBinding.tvLocation.setText(R.string.title_activity_location);
             activityMainBinding.ivLocation.setImageResource(R.drawable.ic_location);
         } else {
@@ -416,7 +432,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // Description
-        activityMainBinding.llDescription.setEnabled(!data.getCollectionData().getAddress().isEmpty() ||
+        activityMainBinding.llDescription.setEnabled(isLocationSet ||
                 !data.getCollectionData().getDescription().isEmpty());
         activityMainBinding.tvDescription.setTextSize(16);
         if (data.getCollectionData().getDescription().isEmpty()) {

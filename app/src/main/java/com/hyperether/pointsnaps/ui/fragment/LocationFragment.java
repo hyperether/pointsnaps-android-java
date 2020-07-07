@@ -34,6 +34,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.hyperether.pointsnaps.App;
 import com.hyperether.pointsnaps.R;
 import com.hyperether.pointsnaps.databinding.FragmentLocationBinding;
+import com.hyperether.pointsnaps.manager.Connectivity;
 import com.hyperether.pointsnaps.ui.UserViewModel;
 import com.hyperether.pointsnaps.utils.Constants;
 import com.hyperether.toolbox.HyperLog;
@@ -121,12 +122,18 @@ public class LocationFragment extends ToolbarFragment implements OnMapReadyCallb
                                 if (distance > MIN_DISTANCE_THRESHOLD ||
                                         location.getAccuracy() < lastLocation.getAccuracy()) {
                                     lastLocation = location;
+                                    latitude = location.getLatitude();
+                                    longitude = location.getLongitude();
+                                    userViewModel.updateLocation(lastAddress, longitude, latitude);
                                     updateAddress(location);
                                     updateMap(location);
                                 }
                             }
                         } else {
                             lastLocation = location;
+                            latitude = location.getLatitude();
+                            longitude = location.getLongitude();
+                            userViewModel.updateLocation(lastAddress, longitude, latitude);
                             updateAddress(location);
                             updateMap(location);
                         }
@@ -236,6 +243,9 @@ public class LocationFragment extends ToolbarFragment implements OnMapReadyCallb
         if (location == null)
             return;
 
+        if (!Connectivity.isConnected())
+            return;
+
         Context context = App.getInstance().getApplicationContext();
         Geocoder geocoder = new Geocoder(context, Locale.getDefault());
         try {
@@ -255,10 +265,8 @@ public class LocationFragment extends ToolbarFragment implements OnMapReadyCallb
                 }
 
                 binding.addressView.setText(sAddress);
-                latitude = location.getLatitude();
-                longitude = location.getLongitude();
-
-                userViewModel.updateLocation(sAddress, longitude, latitude);
+                userViewModel.updateLocation(sAddress, location.getLongitude(),
+                        location.getLatitude());
                 lastAddress = sAddress;
             }
         } catch (IOException e) {
