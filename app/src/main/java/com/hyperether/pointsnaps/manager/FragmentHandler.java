@@ -7,7 +7,8 @@ import com.hyperether.pointsnaps.ui.fragment.LocationFragment;
 import com.hyperether.pointsnaps.ui.fragment.LoginFragment;
 import com.hyperether.pointsnaps.ui.fragment.RegisterFragment;
 import com.hyperether.pointsnaps.ui.fragment.WriteFragment;
-import com.hyperether.toolbox.HyperFragmentStackHandler;
+import com.hyperether.toolbox.ui.HyperFragmentStackHandler;
+
 
 /**
  * Class for fragment management

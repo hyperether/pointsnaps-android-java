@@ -102,7 +102,7 @@ public class LocationFragment extends ToolbarFragment implements OnMapReadyCallb
         /*
         SupportMapFragment mapFragment = (SupportMapFragment) this.getChildFragmentManager().findFragmentById(R.id.map);
          */
-        mapFragment = (SupportMapFragment) getActivity().getSupportFragmentManager().findFragmentById(R.id.map);
+        mapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
         binding.buttonLocationOk.setOnClickListener(buttonOkListener);
@@ -163,8 +163,8 @@ public class LocationFragment extends ToolbarFragment implements OnMapReadyCallb
     public void onDestroyView() {
         super.onDestroyView();
         checkLocationChanged(binding.addressView);
-        if (mapFragment != null)
-            getFragmentManager().beginTransaction().remove(mapFragment).commit();
+//        if (mapFragment != null)
+//            getFragmentManager().beginTransaction().remove(mapFragment).commit();
     }
 
     @Override

@@ -587,12 +587,10 @@ public class MainActivity extends AppCompatActivity {
             case Constants.RESULT_LOAD_IMG: {
                 if (resultCode == Activity.RESULT_OK) {
                     Uri tempUri = data.getData();
-                    try {
-                        String path = HyperFileManager.getFilePathFromUri(getApplicationContext(), tempUri);
-                        addMultiplePhotos(path, data.getData().toString());
-                    } catch (URISyntaxException e) {
-                        e.printStackTrace();
-                    }
+                    String path = HyperFileManager.getFilePathFromUri(getApplicationContext(),
+                            tempUri,
+                            getApplicationContext().getCacheDir());
+                    addMultiplePhotos(path, data.getData().toString());
                 }
                 break;
             }
