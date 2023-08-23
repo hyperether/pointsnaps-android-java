@@ -7,7 +7,6 @@ import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -17,7 +16,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.Window;
-import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -40,16 +38,11 @@ import com.hyperether.pointsnaps.ui.UserViewModel;
 import com.hyperether.pointsnaps.ui.fragment.PhotosPreviewFragment;
 import com.hyperether.pointsnaps.utils.Constants;
 import com.hyperether.pointsnapssdk.repository.SharedPref;
-import com.hyperether.pointsnapssdk.repository.api.ApiResponse;
-import com.hyperether.pointsnapssdk.repository.api.Repository;
-import com.hyperether.pointsnapssdk.repository.api.request.GetUploadUrlRequest;
-import com.hyperether.pointsnapssdk.repository.api.response.GetUploadUrlResponse;
 import com.hyperether.pointsnapssdk.repository.db.CollectionData;
 import com.hyperether.pointsnapssdk.repository.db.ImageData;
 import com.hyperether.pointsnapssdk.repository.db.SnapData;
 import com.hyperether.pointsnapssdk.repository.db.State;
 import com.hyperether.toolbox.HyperLog;
-import com.hyperether.toolbox.graphic.HyperImageProcessing;
 import com.hyperether.toolbox.permission.OnPermissionRequest;
 import com.hyperether.toolbox.permission.PermissionManager;
 import com.hyperether.toolbox.storage.HyperFileManager;
@@ -72,8 +65,6 @@ public class MainActivity extends AppCompatActivity {
     private ProgressDialog progressDialog;
 
     private String myCurrentPhotoPath;
-    private int restToUpload = 0;
-    private int restToUploadError = 0;
 
     private UserViewModel userViewModel;
 
@@ -102,9 +93,23 @@ public class MainActivity extends AppCompatActivity {
                 if (Connectivity.isConnected()) {
                     for (SnapData snapData : snapDataList) {
                         userViewModel.setUploading(snapData.getCollectionData().getId());
-                        uploadData(snapData);
+                        userViewModel.uploadData(snapData);
                     }
                 }
+        });
+        userViewModel.getUploadProgressBarLiveData().observe(this, state -> {
+            if (state) {
+                showProgress();
+            } else {
+                dismissProgress();
+            }
+        });
+        userViewModel.getUploadErrorLiveData().observe(this, message -> {
+            if (message != null && !message.isEmpty()) {
+                alertDialog(getString(R.string.error), message);
+            } else {
+                alertDialog(getString(R.string.error), getString(R.string.upload_error_service));
+            }
         });
 
         activityMainBinding.llUpload.setOnClickListener(uploadClickListener);
@@ -266,92 +271,6 @@ public class MainActivity extends AppCompatActivity {
     private OnClickListener uploadClickListener = v -> {
         userViewModel.setCompleted();
     };
-
-    private void uploadData(SnapData data) {
-        final List<ImageData> imageDataList = data.getImageDataList();
-        if (imageDataList != null && !imageDataList.isEmpty()) {
-
-            GetUploadUrlRequest request = new GetUploadUrlRequest();
-            List<String> images = new ArrayList<>();
-            for (ImageData imageData : imageDataList) {
-                String filePath = imageData.imagePath;
-                final File file = new File(filePath);
-                final String fileName = file.getName().replace(".jpg", "");
-                if (request.getFile() == null)
-                    request.setFile(fileName);
-                final String fileExt = filePath.substring(filePath.lastIndexOf(".") + 1);
-                if (request.getExt() == null)
-                    request.setExt(fileExt);
-                String type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileExt);
-                images.add(type);
-            }
-
-            request.setImages(images);
-            request.setDescription(data.getCollectionData().getDescription());
-            if (data.getCollectionData().getLatitude() > 0
-                    && data.getCollectionData().getLongitude() > 0) {
-                request.setLat(data.getCollectionData().getLatitude());
-                request.setLon(data.getCollectionData().getLongitude());
-            }
-            if (!data.getCollectionData().getAddress().isEmpty()) {
-                request.setAddress(data.getCollectionData().getAddress());
-            }
-
-            showProgress();
-            Repository.getInstance().getUploadUrl(SharedPref.getToken(), request, new ApiResponse() {
-                @Override
-                public void onSuccess(Object response) {
-                    GetUploadUrlResponse getUploadUrlResponse = (GetUploadUrlResponse) response;
-                    uploadToS3(imageDataList, getUploadUrlResponse);
-                    dismissProgress();
-                    userViewModel.setUploaded(data.getCollectionData().getId());
-                }
-
-                @Override
-                public void onError(String message) {
-                    if (message != null && !message.isEmpty()) {
-                        alertDialog(getString(R.string.error), message);
-                    } else {
-                        alertDialog(getString(R.string.error), getString(R.string.upload_error_service));
-                    }
-                    dismissProgress();
-                    if ("Wrong locations params".equals(message)) {
-                        userViewModel.delete(data.getCollectionData());
-                    } else {
-                        userViewModel.setReadyForUpload(data.getCollectionData().getId());
-                    }
-                }
-            });
-        }
-    }
-
-    private void uploadToS3(List<ImageData> imageDataList,
-                            GetUploadUrlResponse getUploadUrlResponse) {
-        String fileId = getUploadUrlResponse.getFileId();
-        List<String> urls = getUploadUrlResponse.getUrls();
-        for (int i = 0; i < urls.size(); i++) {
-            String getUrl = urls.get(i);
-            ImageData imageData = imageDataList.get(i);
-            imageData.imageUrl = getUrl;
-            userViewModel.update(imageData);
-            String filePath = imageData.imagePath;
-            String url = getUrl.substring(getUrl.lastIndexOf("/") + 1);
-            Bitmap bitmap = HyperImageProcessing.getBitmapRotated(new File(filePath), Constants.PHOTO_WIDTH);
-
-            userViewModel.setImageUploading(url);
-            Repository.getInstance().uploadToS3(url, bitmap, fileId, Constants.PHOTO_COMPRESSION, new ApiResponse() {
-                @Override
-                public void onSuccess(Object response) {
-                    userViewModel.setImageUploaded(url);
-                }
-
-                @Override
-                public void onError(String message) {
-                    userViewModel.setImageUploadFailed(url);
-                }
-            });
-        }
-    }
 
     private void dismissProgress() {
         runOnUiThread(() -> {
