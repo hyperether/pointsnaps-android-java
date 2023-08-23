@@ -56,7 +56,6 @@ import com.hyperether.toolbox.storage.HyperFileManager;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -244,6 +243,7 @@ public class MainActivity extends AppCompatActivity {
     private OnClickListener locationClickListener = v -> {
         List<String> list = new ArrayList<>();
         list.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        list.add(Manifest.permission.ACCESS_COARSE_LOCATION);
         PermissionManager.getInstance().getPermissions(MainActivity.this,
                 Constants.TAG_CODE_PERMISSION_LOCATION,
                 new OnPermissionRequest() {
@@ -453,40 +453,47 @@ public class MainActivity extends AppCompatActivity {
         TextView openGallery = dialog.findViewById(R.id.upload_from_gallery);
 
         openCamera.setOnClickListener(v -> {
-            List<String> list = new ArrayList<>();
-            list.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
-            PermissionManager.getInstance().getPermissions(MainActivity.this,
-                    Constants.TAG_CODE_PERMISSION_EXTERNAL_STORAGE,
-                    new OnPermissionRequest() {
-                        @Override
-                        public void onGranted(int code) {
-                            captureClicked();
-                        }
-
-                        @Override
-                        public void onDenied(int code) {
-
-                        }
-                    }, list);
+            captureClicked();
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+//                List<String> list = new ArrayList<>();
+//                list.add(Manifest.permission.READ_MEDIA_IMAGES);
+//                PermissionManager.getInstance().getPermissions(MainActivity.this,
+//                        Constants.TAG_CODE_PERMISSION_EXTERNAL_STORAGE,
+//                        new OnPermissionRequest() {
+//                            @Override
+//                            public void onGranted(int code) {
+//                                captureClicked();
+//                            }
+//
+//                            @Override
+//                            public void onDenied(int code) {
+//                                HyperLog.getInstance().d(TAG, "openPhotoDialog", "Permission denied with code:" + code);
+//                            }
+//                        }, list);
+//            }
             dialog.dismiss();
         });
 
         openGallery.setOnClickListener(v -> {
-            List<String> list = new ArrayList<>();
-            list.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
-            PermissionManager.getInstance().getPermissions(MainActivity.this,
-                    Constants.TAG_CODE_PERMISSION_EXTERNAL_STORAGE_LOAD,
-                    new OnPermissionRequest() {
-                        @Override
-                        public void onGranted(int code) {
-                            loadClicked();
-                        }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                List<String> list = new ArrayList<>();
+                list.add(Manifest.permission.READ_MEDIA_IMAGES);
+                PermissionManager.getInstance().getPermissions(MainActivity.this,
+                        Constants.TAG_CODE_PERMISSION_EXTERNAL_STORAGE_LOAD,
+                        new OnPermissionRequest() {
+                            @Override
+                            public void onGranted(int code) {
+                                loadClicked();
+                            }
 
-                        @Override
-                        public void onDenied(int code) {
+                            @Override
+                            public void onDenied(int code) {
 
-                        }
-                    }, list);
+                            }
+                        }, list);
+            } else {
+                loadClicked();
+            }
             dialog.dismiss();
         });
         dialog.show();
@@ -602,7 +609,10 @@ public class MainActivity extends AppCompatActivity {
     private void getPermissions() {
         List<String> list = new ArrayList<>();
         list.add(Manifest.permission.ACCESS_FINE_LOCATION);
-        list.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        list.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            list.add(Manifest.permission.READ_MEDIA_IMAGES);
+        }
         PermissionManager.getInstance().getPermissions(MainActivity.this,
                 Constants.TAG_CODE_PERMISSION_LOCATION,
                 new OnPermissionRequest() {
