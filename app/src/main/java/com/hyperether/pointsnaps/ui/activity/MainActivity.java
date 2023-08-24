@@ -3,14 +3,11 @@ package com.hyperether.pointsnaps.ui.activity;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.Dialog;
 import android.app.ProgressDialog;
-import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -24,16 +21,15 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
-import androidx.core.content.FileProvider;
 import androidx.databinding.DataBindingUtil;
 import androidx.lifecycle.ViewModelProviders;
 
 import com.bumptech.glide.Glide;
+import com.github.dhaval2404.imagepicker.ImagePicker;
 import com.hyperether.pointsnaps.R;
 import com.hyperether.pointsnaps.databinding.ActivityMainBinding;
 import com.hyperether.pointsnaps.manager.Connectivity;
 import com.hyperether.pointsnaps.manager.FragmentHandler;
-import com.hyperether.pointsnaps.manager.ImageManager;
 import com.hyperether.pointsnaps.ui.UserViewModel;
 import com.hyperether.pointsnaps.ui.fragment.PhotosPreviewFragment;
 import com.hyperether.pointsnaps.utils.Constants;
@@ -42,13 +38,11 @@ import com.hyperether.pointsnapssdk.repository.db.CollectionData;
 import com.hyperether.pointsnapssdk.repository.db.ImageData;
 import com.hyperether.pointsnapssdk.repository.db.SnapData;
 import com.hyperether.pointsnapssdk.repository.db.State;
-import com.hyperether.toolbox.HyperLog;
 import com.hyperether.toolbox.permission.OnPermissionRequest;
 import com.hyperether.toolbox.permission.PermissionManager;
 import com.hyperether.toolbox.storage.HyperFileManager;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -56,15 +50,13 @@ import java.util.List;
  * Base activity
  *
  * @author Slobodan Prijic
- * @version 1.0 - 07/21/2015
+ * @version 1.1 - 24/08/2023
  */
 public class MainActivity extends AppCompatActivity {
 
     public static final String TAG = MainActivity.class.getSimpleName();
 
     private ProgressDialog progressDialog;
-
-    private String myCurrentPhotoPath;
 
     private UserViewModel userViewModel;
 
@@ -124,11 +116,6 @@ public class MainActivity extends AppCompatActivity {
         } else {
             FragmentHandler.getInstance(MainActivity.this).openLoginDialog();
         }
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
     }
 
     @Override
@@ -364,58 +351,25 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void openPhotoDialog() {
-        final Dialog dialog = new Dialog(this);
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        dialog.setContentView(R.layout.dialog_camera);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            List<String> list = new ArrayList<>();
+            list.add(Manifest.permission.READ_MEDIA_IMAGES);
+            PermissionManager.getInstance().getPermissions(MainActivity.this,
+                    Constants.TAG_CODE_PERMISSION_EXTERNAL_STORAGE_LOAD,
+                    new OnPermissionRequest() {
+                        @Override
+                        public void onGranted(int code) {
+                            openImagePicker();
+                        }
 
-        TextView openCamera = dialog.findViewById(R.id.take_a_photo);
-        TextView openGallery = dialog.findViewById(R.id.upload_from_gallery);
+                        @Override
+                        public void onDenied(int code) {
 
-        openCamera.setOnClickListener(v -> {
-            captureClicked();
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-//                List<String> list = new ArrayList<>();
-//                list.add(Manifest.permission.READ_MEDIA_IMAGES);
-//                PermissionManager.getInstance().getPermissions(MainActivity.this,
-//                        Constants.TAG_CODE_PERMISSION_EXTERNAL_STORAGE,
-//                        new OnPermissionRequest() {
-//                            @Override
-//                            public void onGranted(int code) {
-//                                captureClicked();
-//                            }
-//
-//                            @Override
-//                            public void onDenied(int code) {
-//                                HyperLog.getInstance().d(TAG, "openPhotoDialog", "Permission denied with code:" + code);
-//                            }
-//                        }, list);
-//            }
-            dialog.dismiss();
-        });
-
-        openGallery.setOnClickListener(v -> {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                List<String> list = new ArrayList<>();
-                list.add(Manifest.permission.READ_MEDIA_IMAGES);
-                PermissionManager.getInstance().getPermissions(MainActivity.this,
-                        Constants.TAG_CODE_PERMISSION_EXTERNAL_STORAGE_LOAD,
-                        new OnPermissionRequest() {
-                            @Override
-                            public void onGranted(int code) {
-                                loadClicked();
-                            }
-
-                            @Override
-                            public void onDenied(int code) {
-
-                            }
-                        }, list);
-            } else {
-                loadClicked();
-            }
-            dialog.dismiss();
-        });
-        dialog.show();
+                        }
+                    }, list);
+        } else {
+            openImagePicker();
+        }
     }
 
     /*
@@ -430,53 +384,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Capture image
-     */
-    private void captureClicked() {
-        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        // Ensure that there's a camera activity to handle the intent
-        Context context = getApplicationContext();
-        File photoFile = null;
-        try {
-            // Create the File where the photo should go
-            photoFile = ImageManager.createImageFile();
-            // Save a file: path for use with ACTION_VIEW intents
-            myCurrentPhotoPath = "file:" + photoFile.getAbsolutePath();
-        } catch (IOException e) {
-            // Error occurred while creating the File
-            HyperLog.getInstance().e(TAG, "captureClicked", e.getMessage());
-        }
-        // Continue only if the File was successfully created
-        if (intent.resolveActivity(context.getPackageManager()) != null && photoFile != null) {
-            Uri uri;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                uri = FileProvider.getUriForFile(context, context.getPackageName() +
-                        Constants.FILE_PROVIDER_NAME, photoFile);
-                intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            } else {
-                uri = Uri.fromFile(photoFile);
-            }
-            intent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
-            startActivityForResult(intent, Constants.RESULT_CAPTURE_IMG);
-        }
-    }
-
-    /**
      * Load image from gallery
      */
-    private void loadClicked() {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT,
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        intent.setType("image/*");
-        intent = Intent.createChooser(intent, getString(R.string.select_file));
-        startActivityForResult(intent, Constants.RESULT_LOAD_IMG);
-    }
-
-    private void imagePreview(String currentPhotoPath) {
-        File imgFile = new File(currentPhotoPath);
-        if (imgFile.exists()) {
-            Glide.with(MainActivity.this).load(imgFile).into(activityMainBinding.ivPhotoOpen);
-        }
+    private void openImagePicker() {
+        ImagePicker.with(this)
+                .crop()                    //Crop image(Optional), Check Customization for more option
+                .compress(1024)            //Final image size will be less than 1 MB(Optional)
+                .maxResultSize(1080, 1080)    //Final image resolution will be less than 1080 x 1080(Optional)
+                .start();
     }
 
     private void addMultiplePhotos(String imagePath, String intentData) {
@@ -503,25 +418,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        switch (requestCode) {
-            case Constants.RESULT_CAPTURE_IMG: {
-                if (resultCode == Activity.RESULT_OK) {
-                    addMultiplePhotos(myCurrentPhotoPath.substring(5), "");
-                }
-                break;
-            }
-            case Constants.RESULT_LOAD_IMG: {
-                if (resultCode == Activity.RESULT_OK) {
-                    Uri tempUri = data.getData();
-                    String path = HyperFileManager.getFilePathFromUri(getApplicationContext(),
-                            tempUri,
-                            getApplicationContext().getCacheDir());
-                    addMultiplePhotos(path, data.getData().toString());
-                }
-                break;
-            }
-            default:
-                break;
+        if (resultCode == Activity.RESULT_OK) {
+            Uri tempUri = data.getData();
+            String path = HyperFileManager.getFilePathFromUri(getApplicationContext(),
+                    tempUri,
+                    getApplicationContext().getCacheDir());
+            addMultiplePhotos(path, data.getData().toString());
         }
     }
 
