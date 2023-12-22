@@ -1,5 +1,6 @@
 package com.hyperether.pointsnaps.ui.fragment;
 
+import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -196,6 +197,7 @@ public class LocationFragment extends ToolbarFragment implements OnMapReadyCallb
         mMap = googleMap;
     }
 
+    @SuppressLint("MissingPermission")
     private synchronized void updateMap(Location location) {
         if (mMap != null) {
             mMap.setMyLocationEnabled(true);
@@ -226,6 +228,7 @@ public class LocationFragment extends ToolbarFragment implements OnMapReadyCallb
      *
      * */
 
+    @SuppressLint("MissingPermission")
     private synchronized void startRequestingLocationUpdates() {
         if (!requestLocationUpdates) {
             requestLocationUpdates = true;
